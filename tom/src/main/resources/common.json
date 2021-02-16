@@ -1,0 +1,29 @@
+[
+  {
+    "index": "test_1",
+    "setting": {
+      "number_of_shards": 2,
+      "number_of_replicas": 1
+    },
+    "mapping": {
+      "properties": {
+        "id": {
+          "type": "keyword"
+        },
+        "content": {
+          "type": "keyword"
+        },
+        "ip": {
+          "type": "keyword"
+        },
+        "createTime": {
+          "type": "long"
+        },
+        "updateTime": {
+          "type": "long"
+        }
+      }
+    },
+    "agg": ["ip"]
+  }
+]
