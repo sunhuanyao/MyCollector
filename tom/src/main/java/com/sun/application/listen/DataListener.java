@@ -10,12 +10,10 @@ import com.sun.tomorrow.core.tool.elasticsearch.EsInstance;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.common.settings.Settings;
-import org.omg.Messaging.SYNC_WITH_TRANSPORT;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -24,7 +22,6 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 
 import javax.annotation.PostConstruct;
-import javax.swing.plaf.IconUIResource;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
@@ -33,6 +30,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * 监听类 -- 主要 消费 定制化数据。定制化数据来源 参考来源common.json
+ */
 @Component
 @Slf4j
 public class DataListener {
@@ -69,7 +69,10 @@ public class DataListener {
     }
 
 
-
+    /**
+     * 初始化 es 和 redis, es 存的是 处理完逻辑的数据。
+     * redis用于存储需要聚合的字段。
+     */
     public void init() {
         String content = JsonConfigReader.parse(CommonLogs.class.getClassLoader(), "common.json");
         List<CommonLog> list = JSONObject.parseObject(content, new TypeReference<List<CommonLog>>(){}.getType());
@@ -84,6 +87,11 @@ public class DataListener {
         });
     }
 
+    /**
+     * 初始化 redis 数据 扫描 所有的聚合字段，存缓存。
+     *
+     * @param commonLog common
+     */
     public void workRedis(CommonLog commonLog) {
         List<String> agg = commonLog.getAgg();
         if (CollectionUtils.isEmpty(agg)) {
@@ -98,6 +106,12 @@ public class DataListener {
         }
     }
 
+    /**
+     * 初始化 es
+     *
+     * @param commonLog common log
+     * @throws IOException io 异常
+     */
     public void workEsInit(CommonLog commonLog) throws IOException {
         String index = commonLog.getIndex();
         boolean mark = EsInstance.isIndexExists(myEsRestClient, index);
