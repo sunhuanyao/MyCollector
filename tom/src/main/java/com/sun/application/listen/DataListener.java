@@ -93,8 +93,8 @@ public class DataListener {
      * @param commonLog common
      */
     public void workRedis(CommonLog commonLog) {
-        List<String> agg = commonLog.getAgg();
-        if (CollectionUtils.isEmpty(agg)) {
+        String agg = commonLog.getAgg();
+        if (StringUtils.isEmpty(agg)) {
             log.error("agg is null");
             return;
         }
@@ -102,7 +102,7 @@ public class DataListener {
         String key = commonLog.getIndex() + "_agg";
         if (!jedis.exists(key)) {
             log.info("init redis key:{}", key);
-            jedis.lpush(key, agg.toArray(new String[]{}));
+            jedis.set(key, agg);
         }
     }
 
@@ -141,15 +141,17 @@ public class DataListener {
      * @param data 数据
      */
     public void dealData (String index, String data) {
+        log.info("start to deal data.");
         String redisKey = index + "_agg";
         Jedis jedis = jedisPool.getResource();
         Map<String, Object> objectMap = JSONObject.parseObject(data, new TypeReference<Map<String, Object>>(){}.getType());
-        List<String> fields = jedis.lrange(redisKey, 0, -1);
+        String fields = jedis.get(redisKey);
         String esId;
         long count = 1;
-        if (!CollectionUtils.isEmpty(fields)) {
+        if (!StringUtils.isEmpty(fields)) {
             log.info("field need to agg");
-            esId = ToolUtil.generateEsId(index, fields, objectMap);
+            List<String> agg = CommonLog.parseAgg(fields);
+            esId = ToolUtil.generateEsId(index, agg, objectMap);
             if (jedis.exists(esId)) {
                 count = jedis.incr(esId);
             } else {
